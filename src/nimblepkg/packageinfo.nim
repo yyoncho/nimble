@@ -357,8 +357,6 @@ proc findAllPkgs*(pkglist: seq[PackageInfo], dep: PkgTuple): seq[PackageInfo] =
     if withinRange(pkg, dep.ver):
       result.add pkg
 
-proc getNimbleFileDir*(pkgInfo: PackageInfo): string =
-  pkgInfo.myPath.splitFile.dir
 
 proc getRealDir*(pkgInfo: PackageInfo): string =
   ## Returns the directory containing the package source files.

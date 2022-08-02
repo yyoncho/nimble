@@ -213,7 +213,7 @@ proc buildFromDir(pkgInfo: PackageInfo, paths: HashSet[string],
     # `quoteShell` would be more robust than `\"` (and avoid quoting when
     # un-necessary) but would require changing `extractBin`
     let cmd = "$# $# --colors:on --noNimblePath $# $# $#" % [
-      getNimBin(options).quoteShell, pkgInfo.backend, join(args, " "),
+      pkgInfo.getNimBin(options), pkgInfo.backend, join(args, " "),
       outputOpt, input.quoteShell]
     try:
       doCmd(cmd)
@@ -767,7 +767,7 @@ proc execBackend(pkgInfo: PackageInfo, options: Options) =
             "backend") % [bin, pkgInfo.basicInfo.name, backend], priority = HighPriority)
 
   doCmd("$# $# --noNimblePath $# $# $#" %
-        [getNimBin(options).quoteShell,
+        [pkgInfo.getNimBin(options),
          backend,
          join(args, " "),
          bin.quoteShell,

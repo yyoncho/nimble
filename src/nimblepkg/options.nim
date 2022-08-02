@@ -423,8 +423,19 @@ proc setNimBin*(options: var Options) =
       raise nimbleError(
         "Unable to find `nim` binary - add to $PATH or use `--nim`")
 
+proc getNimbleFileDir*(pkgInfo: PackageInfo): string =
+  pkgInfo.myPath.splitFile.dir
+
+proc getNimBin*(pkgInfo: PackageInfo, options: Options): string =
+  if pkgInfo.basicInfo.name == "nim":
+    result = pkgInfo.getNimbleFileDir() / "bin/nim"
+    echo "Using the following nim:", result
+  else:
+    result = options.nim
+  result = result.quoteShell
+
 proc getNimBin*(options: Options): string =
-  return options.nim
+  return options.nim.quoteShell
 
 proc setRunOptions(result: var Options, key, val: string, isArg: bool) =
   if result.action.runFile.isNone():

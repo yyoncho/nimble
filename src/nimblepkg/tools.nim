@@ -62,13 +62,8 @@ proc tryDoCmdEx*(cmd: string): string {.discardable.} =
     raise nimbleError(tryDoCmdExErrorMessage(cmd, output, exitCode))
   return output
 
-proc getNimBin*: string =
-  result = "nim"
-  if findExe("nim") != "": result = findExe("nim")
-  elif findExe("nimrod") != "": result = findExe("nimrod")
-
 proc getNimrodVersion*(options: Options): Version =
-  let vOutput = doCmdEx(getNimBin(options).quoteShell & " -v").output
+  let vOutput = doCmdEx(getNimBin(options) & " -v").output
   var matches: array[0..MaxSubpatterns, string]
   if vOutput.find(peg"'Version'\s{(\d+\.)+\d+}", matches) == -1:
     raise nimbleError("Couldn't find Nim version.")
@@ -139,7 +134,7 @@ proc getDownloadDirName*(uri: string, verRange: VersionRange,
   if verSimple != "":
     result.add "_"
     result.add verSimple
-  
+
   if vcsRevision != notSetSha1Hash:
     result.add "_"
     result.add $vcsRevision
@@ -197,7 +192,7 @@ proc getNameVersionChecksum*(pkgpath: string): PackageBasicInfo =
     return getNameVersionChecksum(pkgPath.splitPath.head)
 
   let (name, version, checksum) = getPathVersionChecksum(pkgPath.splitPath.tail)
-  let sha1Checksum = 
+  let sha1Checksum =
     try:
       initSha1Hash(checksum)
     except InvalidSha1HashError:
