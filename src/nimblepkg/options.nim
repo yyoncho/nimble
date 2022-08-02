@@ -63,7 +63,9 @@ type
   Action* = object
     case typ*: ActionType
     of actionNil, actionList, actionPublish, actionTasks, actionCheck,
-       actionLock, actionSetup, actionClean: nil
+       actionSetup, actionClean: nil
+    of actionLock:
+      lockNim*: bool
     of actionSync:
       listOnly*: bool
     of actionRefresh:
@@ -186,6 +188,7 @@ Commands:
                                   the name of an installed package.
                [--ini, --json]    Selects the output format (the default is --ini).
   lock                            Generates or updates a package lock file.
+               [--lock-nim]       Include nim package in the generated lock file.
   sync                            Synchronizes develop mode dependencies with
                                   the content of the lock file.
                [-l, --list-only]  Only lists the packages which are not synced
@@ -423,6 +426,20 @@ proc setNimBin*(options: var Options) =
       raise nimbleError(
         "Unable to find `nim` binary - add to $PATH or use `--nim`")
 
+proc getNimbleFileDir*(pkgInfo: PackageInfo): string =
+  pkgInfo.myPath.splitFile.dir
+
+proc getNimBin*(pkgInfo: PackageInfo, options: Options): string =
+  if pkgInfo.basicInfo.name == "nim":
+    let binaryPath =  when defined(windows):
+        "bin\nim.exe"
+      else:
+        "bin/nim"
+    result = pkgInfo.getNimbleFileDir() / binaryPath
+    display("Info:", "compiling nim package using $1" % result, priority = HighPriority)
+  else:
+    result = options.nim
+
 proc getNimBin*(options: Options): string =
   return options.nim
 
@@ -598,6 +615,10 @@ proc parseFlag*(flag, val: string, result: var Options, kind = cmdLongOption) =
       result.action.listOnly = true
     else:
       wasFlagHandled = false
+  of actionLock:
+    case f
+    of "lock-nim":
+      result.action.lockNim = true
   else:
     wasFlagHandled = false
 
