@@ -66,7 +66,7 @@ proc initPkgList(pkgInfo: PackageInfo, options: Options): seq[PackageInfo] =
 proc install(packages: seq[PkgTuple], options: Options,
              doPrompt, first, fromLockFile: bool): PackageDependenciesInfo
 
-proc processFreeDependencies(pkgInfo: PackageInfo, options: Options):
+proc processFreeDependencies(pkgInfo: PackageInfo, options: Options, nimAsDepedency = false):
     HashSet[PackageInfo] =
   ## Verifies and installs dependencies.
   ##
@@ -85,7 +85,7 @@ proc processFreeDependencies(pkgInfo: PackageInfo, options: Options):
 
   var reverseDependencies: seq[PackageBasicInfo] = @[]
   for dep in pkgInfo.requires:
-    if dep.name == "nimrod" or dep.name == "nim":
+    if not nimAsDepedency and dep.name.isNim:
       let nimVer = getNimrodVersion(options)
       if not withinRange(nimVer, dep.ver):
         let msg = "Unsatisfied dependency: " & dep.name & " (" & $dep.ver & ")"
@@ -213,7 +213,7 @@ proc buildFromDir(pkgInfo: PackageInfo, paths: HashSet[string],
     # `quoteShell` would be more robust than `\"` (and avoid quoting when
     # un-necessary) but would require changing `extractBin`
     let cmd = "$# $# --colors:on --noNimblePath $# $# $#" % [
-      getNimBin(options).quoteShell, pkgInfo.backend, join(args, " "),
+      pkgInfo.getNimBin(options).quoteShell, pkgInfo.backend, join(args, " "),
       outputOpt, input.quoteShell]
     try:
       doCmd(cmd)
@@ -319,7 +319,7 @@ proc packageExists(pkgInfo: PackageInfo, options: Options):
     fillMetaData(oldPkgInfo, pkgDestDir, true)
     return some(oldPkgInfo)
 
-proc processLockedDependencies(pkgInfo: PackageInfo, options: Options):
+proc processLockedDependencies(pkgInfo: PackageInfo, options: Options, onlyNim = false):
   HashSet[PackageInfo]
 
 proc processAllDependencies(pkgInfo: PackageInfo, options: Options):
@@ -328,6 +328,22 @@ proc processAllDependencies(pkgInfo: PackageInfo, options: Options):
     pkgInfo.processLockedDependencies(options)
   else:
     pkgInfo.processFreeDependencies(options)
+
+proc useLockedNimIfNeeded(pkgInfo: PackageInfo, options: var Options) =
+  if pkgInfo.lockedDeps.len > 0:
+    var deps = pkgInfo.processLockedDependencies(options, true)
+    if deps.len != 0:
+      const binaryName = when defined(windows): "nim.exe" else: "nim"
+      let
+        nimDep = deps.pop
+        nim = nimDep.getRealDir() / "bin" / binaryName
+
+      if not fileExists(options.nim):
+        raise nimbleError("Trying to use nim from $1 " % nimDep.getRealDir(),
+                          "If you are using develop mode nim make sure to compile it.")
+
+      options.nim = nim
+      display("Info:", "using $1 for compilation" % options.nim, priority = HighPriority)
 
 proc installFromDir(dir: string, requestedVer: VersionRange, options: Options,
                     url: string, first: bool, fromLockFile: bool,
@@ -400,10 +416,14 @@ proc installFromDir(dir: string, requestedVer: VersionRange, options: Options,
     result.pkg = oldPkg
     return
 
+  # nim is intended only for local project local usage, so avoid installing it
+  # in .nimble/bin
+  let isNimPackage = pkgInfo.basicInfo.name.isNim
+
   # Build before removing an existing package (if one exists). This way
   # if the build fails then the old package will still be installed.
 
-  if pkgInfo.bin.len > 0:
+  if pkgInfo.bin.len > 0 and not isNimPackage:
     let paths = result.deps.map(dep => dep.getRealDir())
     let flags = if options.action.typ in {actionInstall, actionPath, actionUninstall, actionDevelop}:
                   options.action.passNimFlags
@@ -601,7 +621,7 @@ proc installDependency(pkgInfo: PackageInfo, downloadInfo: DownloadInfo,
 
   return newlyInstalledPkgInfo
 
-proc processLockedDependencies(pkgInfo: PackageInfo, options: Options):
+proc processLockedDependencies(pkgInfo: PackageInfo, options: Options, onlyNim = false):
     HashSet[PackageInfo] =
   # Returns a hash set with `PackageInfo` of all packages from the lock file of
   # the package `pkgInfo` by getting the info for develop mode dependencies from
@@ -612,6 +632,8 @@ proc processLockedDependencies(pkgInfo: PackageInfo, options: Options):
   let developModeDeps = getDevelopDependencies(pkgInfo, options)
 
   for name, dep in pkgInfo.lockedDeps:
+    if onlyNim and not name.isNim:
+      continue
     if developModeDeps.hasKey(name):
       result.incl developModeDeps[name][]
     elif isInstalled(name, dep, options):
@@ -710,9 +732,10 @@ proc build(pkgInfo: PackageInfo, options: Options) =
   var args = options.getCompilationFlags()
   buildFromDir(pkgInfo, paths, args, options)
 
-proc build(options: Options) =
+proc build(options: var Options) =
   let dir = getCurrentDir()
   let pkgInfo = getPkgInfo(dir, options)
+  useLockedNimIfNeeded(pkgInfo, options)
   pkgInfo.build(options)
 
 proc clean(options: Options) =
@@ -767,7 +790,7 @@ proc execBackend(pkgInfo: PackageInfo, options: Options) =
             "backend") % [bin, pkgInfo.basicInfo.name, backend], priority = HighPriority)
 
   doCmd("$# $# --noNimblePath $# $# $#" %
-        [getNimBin(options).quoteShell,
+        [pkgInfo.getNimBin(options).quoteShell,
          backend,
          join(args, " "),
          bin.quoteShell,
@@ -1295,7 +1318,7 @@ proc developFreeDependencies(pkgInfo: PackageInfo,
          "developFreeDependencies needs pkgInfo.requires"
 
   for dep in pkgInfo.requires:
-    if dep.name == "nimrod" or dep.name == "nim":
+    if dep.name.isNim:
       continue
 
     let resolvedDep = dep.resolveAlias(options)
@@ -1595,8 +1618,12 @@ proc lock(options: Options) =
   let doesLockFileExist = displayLockOperationStart(currentDir)
   var errors = validateDevModeDepsWorkingCopiesBeforeLock(pkgInfo, options)
 
-  let dependencies = pkgInfo.processFreeDependencies(options).map(
-    pkg => pkg.toFullInfo(options)).toSeq
+  let
+    includeNim = pkgInfo.getDevelopDependencies(options).contains("nim")
+    dependencies = pkgInfo.processFreeDependencies(options, includeNim)
+      .map(pkg => pkg.toFullInfo(options))
+      .toSeq
+
   pkgInfo.validateDevelopDependenciesVersionRanges(dependencies, options)
   var dependencyGraph = buildDependencyGraph(dependencies, options)
 
@@ -1918,6 +1945,10 @@ proc doAction(options: var Options) =
   of actionRefresh:
     refresh(options)
   of actionInstall:
+    if options.action.packages.len != 0:
+      let pkgInfo = getPkgInfo(getCurrentDir(), options)
+      useLockedNimIfNeeded(pkgInfo, options)
+
     let (_, pkgInfo) = install(options.action.packages, options,
                                doPrompt = true,
                                first = true,

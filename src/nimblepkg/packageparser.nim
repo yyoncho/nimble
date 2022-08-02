@@ -116,43 +116,45 @@ proc validatePackageStructure(pkgInfo: PackageInfo, options: Options) =
     if ext != (ExtSep & "nim"):
       return
 
-    if dir.len == 0:
-      if file != pkgInfo.basicInfo.name:
-        # A source file was found in the top level of srcDir that doesn't share
-        # a name with the package.
-        let
-          msg = ("Package '$1' has an incorrect structure. " &
-                "The top level of the package source directory " &
-                "should contain at most one module, " &
-                "named '$2', but a file named '$3' was found. This " &
-                "will be an error in the future.") %
-                [pkgInfo.basicInfo.name, pkgInfo.basicInfo.name & ext, file & ext]
-          hint = ("If this is the primary source file in the package, " &
-                  "rename it to '$1'. If it's a source file required by " &
-                  "the main module, or if it is one of several " &
-                  "modules exposed by '$4', then move it into a '$2' subdirectory. " &
-                  "If it's a test file or otherwise not required " &
-                  "to build the the package '$1', prevent its installation " &
-                  "by adding `skipFiles = @[\"$3\"]` to the .nimble file. See " &
-                  "https://github.com/nim-lang/nimble#libraries for more info.") %
-                  [pkgInfo.basicInfo.name & ext, correctDir & DirSep, file & ext, pkgInfo.basicInfo.name]
-        raise validationError(msg, true, hint, true)
-    else:
-      assert(not pkgInfo.isMinimal)
-      # On Windows `pkgInfo.bin` has a .exe extension, so we need to normalize.
-      if not (dir.startsWith(correctDir & DirSep) or dir == correctDir):
-        let
-          msg = ("Package '$2' has an incorrect structure. " &
-                "It should contain a single directory hierarchy " &
-                "for source files, named '$3', but file '$1' " &
-                "is in a directory named '$4' instead. " &
-                "This will be an error in the future.") %
-              [file & ext, pkgInfo.basicInfo.name, correctDir, dir]
-          hint = ("If '$1' contains source files for building '$2', rename it " &
-                  "to '$3'. Otherwise, prevent its installation " &
-                  "by adding `skipDirs = @[\"$1\"]` to the .nimble file.") %
-              [dir, pkgInfo.basicInfo.name, correctDir]
-        raise validationError(msg, true, hint, true)
+    # nim is used for building the project, thus no need to validate its structure.
+    if not pkgInfo.basicInfo.name.isNim:
+      if dir.len == 0:
+        if file != pkgInfo.basicInfo.name:
+          # A source file was found in the top level of srcDir that doesn't share
+          # a name with the package.
+          let
+            msg = ("Package '$1' has an incorrect structure. " &
+                  "The top level of the package source directory " &
+                  "should contain at most one module, " &
+                  "named '$2', but a file named '$3' was found. This " &
+                  "will be an error in the future.") %
+                  [pkgInfo.basicInfo.name, pkgInfo.basicInfo.name & ext, file & ext]
+            hint = ("If this is the primary source file in the package, " &
+                    "rename it to '$1'. If it's a source file required by " &
+                    "the main module, or if it is one of several " &
+                    "modules exposed by '$4', then move it into a '$2' subdirectory. " &
+                    "If it's a test file or otherwise not required " &
+                    "to build the the package '$1', prevent its installation " &
+                    "by adding `skipFiles = @[\"$3\"]` to the .nimble file. See " &
+                    "https://github.com/nim-lang/nimble#libraries for more info.") %
+                    [pkgInfo.basicInfo.name & ext, correctDir & DirSep, file & ext, pkgInfo.basicInfo.name]
+          raise validationError(msg, true, hint, true)
+      else:
+        assert(not pkgInfo.isMinimal)
+        # On Windows `pkgInfo.bin` has a .exe extension, so we need to normalize.
+        if not (dir.startsWith(correctDir & DirSep) or dir == correctDir):
+          let
+            msg = ("Package '$2' has an incorrect structure. " &
+                  "It should contain a single directory hierarchy " &
+                  "for source files, named '$3', but file '$1' " &
+                  "is in a directory named '$4' instead. " &
+                  "This will be an error in the future.") %
+                [file & ext, pkgInfo.basicInfo.name, correctDir, dir]
+            hint = ("If '$1' contains source files for building '$2', rename it " &
+                    "to '$3'. Otherwise, prevent its installation " &
+                    "by adding `skipDirs = @[\"$1\"]` to the .nimble file.") %
+                [dir, pkgInfo.basicInfo.name, correctDir]
+          raise validationError(msg, true, hint, true)
 
   iterInstallFiles(realDir, pkgInfo, options, onFile)
 
@@ -308,7 +310,7 @@ proc inferInstallRules(pkgInfo: var PackageInfo, options: Options) =
   # installed.)
   let installInstructions =
     pkgInfo.installDirs.len + pkgInfo.installExt.len + pkgInfo.installFiles.len
-  if installInstructions == 0 and pkgInfo.bin.len > 0:
+  if installInstructions == 0 and pkgInfo.bin.len > 0 and pkgInfo.basicInfo.name != "nim":
     pkgInfo.skipExt.add("nim")
 
   # When a package doesn't specify a `srcDir` it's fair to assume that
