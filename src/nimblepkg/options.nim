@@ -429,9 +429,10 @@ proc getNimbleFileDir*(pkgInfo: PackageInfo): string =
 proc getNimBin*(pkgInfo: PackageInfo, options: Options): string =
   if pkgInfo.basicInfo.name == "nim":
     result = pkgInfo.getNimbleFileDir() / "bin/nim"
-    echo "Using the following nim:", result
+    echo "Using the following nim: ", result
   else:
     result = options.nim
+
   result = result.quoteShell
 
 proc getNimBin*(options: Options): string =

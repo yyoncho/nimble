@@ -66,7 +66,7 @@ proc initPkgList(pkgInfo: PackageInfo, options: Options): seq[PackageInfo] =
 proc install(packages: seq[PkgTuple], options: Options,
              doPrompt, first, fromLockFile: bool): PackageDependenciesInfo
 
-proc processFreeDependencies(pkgInfo: PackageInfo, options: Options):
+proc processFreeDependencies(pkgInfo: PackageInfo, options: Options, onlyNim = false):
     HashSet[PackageInfo] =
   ## Verifies and installs dependencies.
   ##
@@ -319,15 +319,15 @@ proc packageExists(pkgInfo: PackageInfo, options: Options):
     fillMetaData(oldPkgInfo, pkgDestDir, true)
     return some(oldPkgInfo)
 
-proc processLockedDependencies(pkgInfo: PackageInfo, options: Options):
+proc processLockedDependencies(pkgInfo: PackageInfo, options: Options, onlyNim = false):
   HashSet[PackageInfo]
 
-proc processAllDependencies(pkgInfo: PackageInfo, options: Options):
+proc processAllDependencies(pkgInfo: PackageInfo, options: Options, onlyNim = false):
     HashSet[PackageInfo] =
   if pkgInfo.lockedDeps.len > 0:
-    pkgInfo.processLockedDependencies(options)
+    pkgInfo.processLockedDependencies(options, onlyNim)
   else:
-    pkgInfo.processFreeDependencies(options)
+    pkgInfo.processFreeDependencies(options, onlyNim)
 
 proc installFromDir(dir: string, requestedVer: VersionRange, options: Options,
                     url: string, first: bool, fromLockFile: bool,
@@ -601,7 +601,7 @@ proc installDependency(pkgInfo: PackageInfo, downloadInfo: DownloadInfo,
 
   return newlyInstalledPkgInfo
 
-proc processLockedDependencies(pkgInfo: PackageInfo, options: Options):
+proc processLockedDependencies(pkgInfo: PackageInfo, options: Options, onlyNim = false):
     HashSet[PackageInfo] =
   # Returns a hash set with `PackageInfo` of all packages from the lock file of
   # the package `pkgInfo` by getting the info for develop mode dependencies from
@@ -710,9 +710,13 @@ proc build(pkgInfo: PackageInfo, options: Options) =
   var args = options.getCompilationFlags()
   buildFromDir(pkgInfo, paths, args, options)
 
-proc build(options: Options) =
+proc findFromPackageInfo(pkgInfo: PackageInfo, options: Options): string =
+  result = options.nim
+
+proc build(options: var Options) =
   let dir = getCurrentDir()
   let pkgInfo = getPkgInfo(dir, options)
+  options.nim = pkgInfo.findFromPackageInfo(options)
   pkgInfo.build(options)
 
 proc clean(options: Options) =
