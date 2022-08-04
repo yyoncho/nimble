@@ -84,8 +84,9 @@ proc processFreeDependencies(pkgInfo: PackageInfo, options: Options, onlyNim = f
           priority = HighPriority)
 
   var reverseDependencies: seq[PackageBasicInfo] = @[]
-  for dep in pkgInfo.requires:
-    if dep.name == "nimrod" or dep.name == "nim":
+
+  for dep in pkgInfo.requires.filterIt(not onlyNim or it.name != "nim"):
+    if not onlyNim and (dep.name == "nimrod" or dep.name == "nim"):
       let nimVer = getNimrodVersion(options)
       if not withinRange(nimVer, dep.ver):
         let msg = "Unsatisfied dependency: " & dep.name & " (" & $dep.ver & ")"
@@ -612,6 +613,8 @@ proc processLockedDependencies(pkgInfo: PackageInfo, options: Options, onlyNim =
   let developModeDeps = getDevelopDependencies(pkgInfo, options)
 
   for name, dep in pkgInfo.lockedDeps:
+    if onlyNim and name != "nim":
+      continue
     if developModeDeps.hasKey(name):
       result.incl developModeDeps[name][]
     elif isInstalled(name, dep, options):
