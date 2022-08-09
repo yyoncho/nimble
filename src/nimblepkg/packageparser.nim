@@ -117,7 +117,7 @@ proc validatePackageStructure(pkgInfo: PackageInfo, options: Options) =
       return
 
     # nim is used for building the project, thus no need to validate its structure.
-    if not pkgInfo.basicInfo.name.isNim:
+    if not pkgInfo.basicInfo.name.isCompiler:
       if dir.len == 0:
         if file != pkgInfo.basicInfo.name:
           # A source file was found in the top level of srcDir that doesn't share
