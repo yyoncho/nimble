@@ -319,7 +319,7 @@ proc packageExists(pkgInfo: PackageInfo, options: Options):
     fillMetaData(oldPkgInfo, pkgDestDir, true)
     return some(oldPkgInfo)
 
-proc processLockedDependencies(pkgInfo: PackageInfo, options: Options, onlyNim = false):
+proc processLockedDependencies(pkgInfo: PackageInfo, options: Options, onlyCompiler = false):
   HashSet[PackageInfo]
 
 proc processAllDependencies(pkgInfo: PackageInfo, options: Options):
@@ -418,7 +418,7 @@ proc installFromDir(dir: string, requestedVer: VersionRange, options: Options,
 
   # nim is intended only for local project local usage, so avoid installing it
   # in .nimble/bin
-  let isNimPackage = pkgInfo.basicInfo.name.isNim
+  let isNimPackage = pkgInfo.basicInfo.name.isCompiler
 
   # Build before removing an existing package (if one exists). This way
   # if the build fails then the old package will still be installed.
@@ -621,7 +621,7 @@ proc installDependency(pkgInfo: PackageInfo, downloadInfo: DownloadInfo,
 
   return newlyInstalledPkgInfo
 
-proc processLockedDependencies(pkgInfo: PackageInfo, options: Options, onlyNim = false):
+proc processLockedDependencies(pkgInfo: PackageInfo, options: Options, onlyCompiler = false):
     HashSet[PackageInfo] =
   # Returns a hash set with `PackageInfo` of all packages from the lock file of
   # the package `pkgInfo` by getting the info for develop mode dependencies from
@@ -632,7 +632,7 @@ proc processLockedDependencies(pkgInfo: PackageInfo, options: Options, onlyNim =
   let developModeDeps = getDevelopDependencies(pkgInfo, options)
 
   for name, dep in pkgInfo.lockedDeps:
-    if onlyNim and not name.isNim:
+    if onlyCompiler and not name.isCompiler:
       continue
     if developModeDeps.hasKey(name):
       result.incl developModeDeps[name][]
