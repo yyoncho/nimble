@@ -1620,7 +1620,6 @@ proc lock(options: Options) =
 
   let
     includeNim =
-      options.action.lockNim or
       pkgInfo.lockedDeps.contains("compiler") or
       pkgInfo.getDevelopDependencies(options).contains("nim")
     dependencies = pkgInfo.processFreeDependencies(options, includeNim)

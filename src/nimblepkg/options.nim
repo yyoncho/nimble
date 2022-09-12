@@ -63,9 +63,7 @@ type
   Action* = object
     case typ*: ActionType
     of actionNil, actionList, actionPublish, actionTasks, actionCheck,
-       actionSetup, actionClean: nil
-    of actionLock:
-      lockNim*: bool
+       actionLock, actionSetup, actionClean: nil
     of actionSync:
       listOnly*: bool
     of actionRefresh:
@@ -188,7 +186,6 @@ Commands:
                                   the name of an installed package.
                [--ini, --json]    Selects the output format (the default is --ini).
   lock                            Generates or updates a package lock file.
-               [--lock-nim]       Include nim package in the generated lock file.
   sync                            Synchronizes develop mode dependencies with
                                   the content of the lock file.
                [-l, --list-only]  Only lists the packages which are not synced
@@ -615,10 +612,6 @@ proc parseFlag*(flag, val: string, result: var Options, kind = cmdLongOption) =
       result.action.listOnly = true
     else:
       wasFlagHandled = false
-  of actionLock:
-    case f
-    of "lock-nim":
-      result.action.lockNim = true
   else:
     wasFlagHandled = false
 
