@@ -60,7 +60,7 @@ jobs:
       - name: Compress the Nim Language Server binaries
         run: |
           cd src
-          tar -c -z -v -f nimble-${{ matrix.target.os }}-${{ matrix.target.cpu }}.tar.gz `ls nimble{,.exe} 2>/dev/null || true`
+          tar -c -z -v -f ../nimble-${{ matrix.target.os }}-${{ matrix.target.cpu }}.tar.gz `ls nimble{,.exe} 2>/dev/null || true`
 
       - name: Upload the Nim Language Server Binaries
         uses: actions/upload-artifact@v2
