@@ -1,7 +1,11 @@
 on:
   push:
-    tags:
-    - 'v*' # "v1.2.3"workflow_dispatch:
+    paths-ignore: ['media/**', 'docs/**', '**/*.md']
+    branches:
+    - master
+    pull_request:
+      paths-ignore: ['media/**', 'docs/**', '**/*.md']
+    workflow_dispatch:
 
 jobs:
   build:
