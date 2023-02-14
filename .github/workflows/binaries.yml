@@ -3,6 +3,8 @@ on:
     paths-ignore: ['media/**', 'docs/**', '**/*.md']
     branches:
     - master
+    tags:
+      - 'v*' # "v1.2.3"workflow_dispatch:
     pull_request:
       paths-ignore: ['media/**', 'docs/**', '**/*.md']
     workflow_dispatch:
