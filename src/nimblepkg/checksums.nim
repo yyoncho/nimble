@@ -17,6 +17,8 @@ Downloaded package checksum does not correspond to that in the lock file:
   Expected checksum: {expectedChecksum}
 """)
 
+import strutils
+
 proc updateSha1Checksum(checksum: var Sha1State, fileName, filePath: string) =
   if not filePath.fileExists:
     # In some cases a file name returned by `git ls-files` or `hg manifest`
@@ -25,6 +27,11 @@ proc updateSha1Checksum(checksum: var Sha1State, fileName, filePath: string) =
     # directory from which no files are being installed.
     return
   checksum.update(fileName)
+  if fileName.contains("PNG"):
+    echo fileName
+    var c = checksum
+    echo "file = ", fileName, ", checksum = ", initSha1Hash($SecureHash(c.finalize()))
+
   if symlinkExists(filePath):
     # Check whether a file is a symbolic link and if so update the checksum with
     # the path to the file that the link points to.
@@ -65,13 +72,14 @@ proc calculateDirSha1Checksum*(dir: string): Sha1Hash =
   ##   - the directory does not exist.
 
   var packageFiles = getPackageFileList(dir.Path)
+  echo "calculateDirSha1Checksum>> starting for dir: ", dir
   packageFiles.sort
   # echo "calculateDirSha1Checksum>> ", packageFiles
   var checksum = newSha1State()
   for file in packageFiles:
     updateSha1Checksum(checksum, file, dir / file)
     var c = checksum
-    echo "file = ", file, ", checksum = ", initSha1Hash($SecureHash(c.finalize()))
+    # echo "file = ", file, ", checksum = ", initSha1Hash($SecureHash(c.finalize()))
 
   result = initSha1Hash($SecureHash(checksum.finalize()))
-  echo "calculateDirSha1Checksum>> ", result
+  # echo "calculateDirSha1Checksum>> ", result
