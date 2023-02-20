@@ -70,6 +70,8 @@ proc calculateDirSha1Checksum*(dir: string): Sha1Hash =
   var checksum = newSha1State()
   for file in packageFiles:
     updateSha1Checksum(checksum, file, dir / file)
-    echo "file = ", file, ", checksum = ", checksum
+    var c = checksum
+    echo "file = ", file, ", checksum = ", initSha1Hash($SecureHash(c.finalize()))
+
   result = initSha1Hash($SecureHash(checksum.finalize()))
   echo "calculateDirSha1Checksum>> ", result
