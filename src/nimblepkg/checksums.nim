@@ -27,10 +27,9 @@ proc updateSha1Checksum(checksum: var Sha1State, fileName, filePath: string) =
     # directory from which no files are being installed.
     return
   checksum.update(fileName)
-  if fileName.contains("PNG"):
-    echo fileName
+  if filePath.contains("PNG"):
     var c = checksum
-    echo "file = ", fileName, ", checksum = ", initSha1Hash($SecureHash(c.finalize()))
+    echo fileName, " >> ", initSha1Hash($SecureHash(c.finalize()))
 
   if symlinkExists(filePath):
     # Check whether a file is a symbolic link and if so update the checksum with
