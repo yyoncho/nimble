@@ -25,7 +25,7 @@ proc doCheckout(meth: DownloadMethod, downloadDir, branch: string) =
     # Force is used here because local changes may appear straight after a clone
     # has happened. Like in the case of git on Windows where it messes up the
     # damn line endings.
-    discard tryDoCmdEx(&"git -C {downloadDir} checkout --force {branch}") 
+    discard tryDoCmdEx(&"git -C {downloadDir} checkout --force {branch}")
     downloadDir.updateSubmodules
   of DownloadMethod.hg:
     discard tryDoCmdEx(&"hg --cwd {downloadDir} checkout {branch}")
@@ -38,7 +38,7 @@ proc doClone(meth: DownloadMethod, url, downloadDir: string, branch = "",
       depthArg = if onlyTip: "--depth 1" else: ""
       branchArg = if branch == "": "" else: &"-b {branch}"
     discard tryDoCmdEx(
-       "git clone --config core.autocrlf=false --recursive " &
+       "git clone --config core.autocrlf=false --config core.eol=lf --recursive " &
       &"{depthArg} {branchArg} {url} {downloadDir}")
   of DownloadMethod.hg:
     let
@@ -411,7 +411,7 @@ proc doDownload(url, downloadDir: string, verRange: VersionRange,
             doClone(downMethod, url, downloadDir, latest.tag,
                     onlyTip = not options.forceFullClone)
       else:
-        display("Warning:", "The package has no tagged releases, downloading HEAD instead.", Warning, 
+        display("Warning:", "The package has no tagged releases, downloading HEAD instead.", Warning,
                 priority = HighPriority)
         if downloadTarball(url, options):
           result.vcsRevision = doDownloadTarball(url, downloadDir, "HEAD", true)
@@ -430,7 +430,7 @@ proc doDownload(url, downloadDir: string, verRange: VersionRange,
                   priority = MediumPriority)
           doCheckout(downMethod, downloadDir, latest.tag)
       else:
-        display("Warning:", "The package has no tagged releases, downloading HEAD instead.", Warning, 
+        display("Warning:", "The package has no tagged releases, downloading HEAD instead.", Warning,
                   priority = HighPriority)
 
   if result.vcsRevision == notSetSha1Hash:
@@ -574,8 +574,8 @@ when isMainModule:
       action: Action(typ: actionDevelop, path: "/some/dir/"))
     let dummyOptionsWithRelativePath = Options(
       action: Action(typ: actionDevelop, path: "some/dir/"))
-    
-    test "without subdir and without path":  
+
+    test "without subdir and without path":
       check getDevelopDownloadDir(
         "https://github.com/nimble-test/packagea/", "",
         dummyOptionsWithoutPath) == getCurrentDir() / "packagea"
