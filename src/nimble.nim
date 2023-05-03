@@ -1641,6 +1641,13 @@ proc getDependenciesForLocking(pkgInfo: PackageInfo, options: Options):
 
   result = res.deleteStaleDependencies(pkgInfo, options).deduplicate
 
+proc updatePathsFileIfNeeded(pkgInfo: PackageInfo, options: Options) =
+  if nimblePathsFileName.fileExists and
+      options.prompt("Paths file detected. Would you like to updateit?"):
+    var pkg = pkgInfo
+    pkg.lockedDeps = options.lockFile(getCurrentDir()).getLockedDependencies()
+    pkg.updatePathsFile(options)
+
 proc lock(options: Options) =
   ## Generates a lock file for the package in the current directory or updates
   ## it if it already exists.
@@ -1698,6 +1705,7 @@ proc lock(options: Options) =
 
   writeLockFile(currentLockFile, lockDeps)
   updateSyncFile(pkgInfo, options)
+  updatePathsFileIfNeeded(pkgInfo, options)
   displayLockOperationFinish(lockExists)
 
 proc depsTree(options: Options) =

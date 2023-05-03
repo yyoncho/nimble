@@ -728,3 +728,21 @@ requires "nim >= 1.5.1"
           let res = execNimbleYes("upgrade", fmt "{dep1PkgName}@#HEAD")
           check res.exitCode == QuitSuccess
           check defaultLockFileName.readFile.parseJson{$lfjkPackages}.keys.toSeq == @["dep1"]
+
+  test "Lock command updates the path file.":
+    cleanUp()
+    withPkgListFile:
+      initNewNimblePackage(mainPkgOriginRepoPath, mainPkgRepoPath, @[dep1PkgName])
+      initNewNimblePackage(dep1PkgOriginRepoPath, dep1PkgRepoPath)
+      initNewNimblePackage(dep2PkgOriginRepoPath, dep2PkgRepoPath)
+
+      cd mainPkgRepoPath:
+        check execNimbleYes("lock").exitCode == QuitSuccess
+        check execNimbleYes("setup").exitCode == QuitSuccess
+        check not "nimble.paths".readFile.contains("dep2")
+        let nimbleFile = initNewNimbleFile(mainPkgOriginRepoPath, @[dep1PkgName, dep2PkgName])
+        addFiles(nimbleFile)
+        commit("Add repo")
+
+        check execNimbleYes("lock").exitCode == QuitSuccess
+        check "nimble.paths".readFile.contains("dep2")
