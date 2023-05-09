@@ -32,9 +32,9 @@ type
       verILeft, verIRight: VersionRange
     of verAny:
       nil
+  Features* = seq[string]
 
-  ## Tuple containing package name and version range.
-  PkgTuple* = tuple[name: string, ver: VersionRange]
+  PkgTuple* = tuple[name: string, ver: VersionRange, features: Features]
 
   ParseVersionError* = object of NimbleError
 
@@ -159,7 +159,7 @@ proc withinRange*(versions: HashSet[Version], range: VersionRange): bool =
 proc contains*(ran: VersionRange, ver: Version): bool =
   return withinRange(ver, ran)
 
-proc getNextIncompatibleVersion(version: Version, semver: bool): Version = 
+proc getNextIncompatibleVersion(version: Version, semver: bool): Version =
   ## try to get next higher version to exclude according to semver semantic
   var numbers = version.version.split('.')
   let originalNumberLen = numbers.len
@@ -193,7 +193,7 @@ proc getNextIncompatibleVersion(version: Version, semver: bool): Version =
 proc makeRange*(version: Version, op: string): VersionRange =
   if version == notSetVersion:
     raise parseVersionError("A version needs to accompany the operator.")
-  
+
   case op
   of ">":
     result = VersionRange(kind: verLater, ver: version)
@@ -271,7 +271,7 @@ proc parseVersionRange*(version: Version): VersionRange =
 
 proc toVersionRange*(ver: Version): VersionRange =
   ## Converts a version to either a verEq or verSpecial VersionRange.
-  result = 
+  result =
     if ver.isSpecial:
       VersionRange(kind: verSpecial, spe: ver)
     else:
@@ -352,6 +352,15 @@ proc findLatest*(verRange: VersionRange,
 
 proc `$`*(dep: PkgTuple): string =
   return dep.name & "@" & $dep.ver
+
+proc newPkgTuple*(name: string): PkgTuple =
+  result = (name, newVRAny(), @[])
+
+proc newPkgTuple*(name: string, versionRange: VersionRange): PkgTuple =
+  result = (name, versionRange, @[])
+
+proc newPkgTuple*(name: string, versionRange: VersionRange, features: Features): PkgTuple =
+  result = (name, versionRange, features)
 
 when isMainModule:
   import unittest

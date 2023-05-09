@@ -13,10 +13,10 @@ proc depsRecursive*(pkgInfo: PackageInfo,
                     errors: ValidationErrors): seq[DependencyNode] =
   result = @[]
 
-  for (name, ver) in pkgInfo.fullRequirements:
+  for (name, ver, _) in pkgInfo.fullRequirements:
     var depPkgInfo = initPackageInfo()
     let
-      found = dependencies.findPkg((name, ver), depPkgInfo)
+      found = dependencies.findPkg((name, ver, @[]), depPkgInfo)
       packageName = if found: depPkgInfo.basicInfo.name else: name
 
     let node = DependencyNode(name: packageName)
@@ -35,10 +35,10 @@ proc printDepsHumanReadable*(pkgInfo: PackageInfo,
                              dependencies: seq[PackageInfo],
                              level: int,
                              errors: ValidationErrors) =
-  for (name, ver) in pkgInfo.requires:
+  for (name, ver, _) in pkgInfo.requires:
     var depPkgInfo = initPackageInfo()
     let
-      found = dependencies.findPkg((name, ver), depPkgInfo)
+      found = dependencies.findPkg((name, ver, @[]), depPkgInfo)
       packageName = if found: depPkgInfo.basicInfo.name else: name
 
     echo " ".repeat(level * 2),

@@ -123,7 +123,7 @@ proc processFreeDependencies(pkgInfo: PackageInfo,
 
     if not found:
       display("Installing", $resolvedDep, priority = HighPriority)
-      let toInstall = @[(resolvedDep.name, resolvedDep.ver)]
+      let toInstall: seq[PkgTuple] = @[newPkgTuple(resolvedDep.name, resolvedDep.ver)]
       let (packages, installedPkg) = install(toInstall, options,
         doPrompt = false, first = false, fromLockFile = false,
         preferredPackages = preferredPackages)
@@ -289,7 +289,7 @@ proc reinstallSymlinksForOlderVersion(pkgDir: string, options: Options) =
   let (pkgName, _, _) = getNameVersionChecksum(pkgDir)
   let pkgList = getInstalledPkgsMin(options.getPkgsDir(), options)
   var newPkgInfo = initPackageInfo()
-  if pkgList.findPkg((pkgName, newVRAny()), newPkgInfo):
+  if pkgList.findPkg(pkgName.newPkgTuple, newPkgInfo):
     newPkgInfo = newPkgInfo.toFullInfo(options)
     for bin, _ in newPkgInfo.bin:
       let symlinkDest = newPkgInfo.getOutputDir(bin)
@@ -736,8 +736,8 @@ proc install(packages: seq[PkgTuple], options: Options,
                   " like to try installing '$1@#head' (latest unstable)?") %
                   [pv.name, $downloadVersion])
           if promptResult:
-            let toInstall = @[(pv.name, headVer.toVersionRange())]
-            result =  install(toInstall, options, doPrompt, first,
+            let toInstall = @[newPkgTuple(pv.name, headVer.toVersionRange())]
+            result = install(toInstall, options, doPrompt, first,
                               fromLockFile = false)
           else:
             raise buildFailed(
@@ -906,11 +906,11 @@ proc listPaths(options: Options) =
 
   var errors = 0
   let pkgs = getInstalledPkgsMin(options.getPkgsDir(), options)
-  for name, version in options.action.packages.items:
+  for pkgTuple in options.action.packages.items:
     var installed: seq[VersionAndPath] = @[]
     # There may be several, list all available ones and sort by version.
     for pkg in pkgs:
-      if name == pkg.basicInfo.name and withinRange(pkg.basicInfo.version, version):
+      if pkgTuple.name == pkg.basicInfo.name and withinRange(pkg.basicInfo.version, pkgTuple.ver):
         installed.add((pkg.basicInfo.version, pkg.getRealDir))
 
     if installed.len > 0:
@@ -919,7 +919,7 @@ proc listPaths(options: Options) =
       for pkg in installed:
         echo pkg.path
     else:
-      display("Warning:", "Package '$1' is not installed" % name, Warning,
+      display("Warning:", "Package '$1' is not installed" % pkgTuple.name, Warning,
               MediumPriority)
       errors += 1
   if errors > 0:
@@ -968,7 +968,7 @@ proc dump(options: Options) =
         # jsonutils.toJson would work but is only available since 1.3.5, so we
         # do it manually.
         j[key] = newJArray()
-        for (name, ver) in val:
+        for (name, ver, _) in val:
           j[key].add %{
             "name": % name,
             # we serialize both: `ver` may be more convenient for tooling
