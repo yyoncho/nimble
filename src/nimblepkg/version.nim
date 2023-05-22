@@ -277,17 +277,6 @@ proc toVersionRange*(ver: Version): VersionRange =
     else:
       VersionRange(kind: verEq, ver: ver)
 
-proc parseRequiresCommandLine*(pkg: string): PkgTuple =
-  # Parse pkg@verRange
-  result = if '@' in pkg:
-    let
-      i = find(pkg, '@')
-      (pkgName, pkgVer) = (pkg[0 .. i-1], pkg[i+1 .. pkg.len-1])
-    if pkgVer.len == 0:
-      raise nimbleError("Version range expected after '@'.")
-    newPkgTuple(pkgName, pkgVer.parseVersionRange())
-  else:
-    newPkgTuple(pkg, VersionRange(kind: verAny), @[])
 
 proc parseRequires*(req: string): PkgTuple =
   try:
@@ -362,9 +351,6 @@ proc findLatest*(verRange: VersionRange,
     if ver > result.ver:
       result = (ver, tag)
 
-proc `$`*(dep: PkgTuple): string =
-  return dep.name & "@" & $dep.ver
-
 proc newPkgTuple*(name: string): PkgTuple =
   result = (name, newVRAny(), @[])
 
@@ -373,6 +359,21 @@ proc newPkgTuple*(name: string, versionRange: VersionRange): PkgTuple =
 
 proc newPkgTuple*(name: string, versionRange: VersionRange, features: Features): PkgTuple =
   result = (name, versionRange, features)
+
+proc `$`*(dep: PkgTuple): string =
+  return dep.name & "@" & $dep.ver
+
+proc parseRequiresCommandLine*(pkg: string): PkgTuple =
+  # Parse pkg@verRange
+  result = if '@' in pkg:
+    let
+      i = find(pkg, '@')
+      (pkgName, pkgVer) = (pkg[0 .. i-1], pkg[i+1 .. pkg.len-1])
+    if pkgVer.len == 0:
+      raise nimbleError("Version range expected after '@'.")
+    newPkgTuple(pkgName, pkgVer.parseVersionRange())
+  else:
+    newPkgTuple(pkg, VersionRange(kind: verAny), @[])
 
 when isMainModule:
   import unittest
