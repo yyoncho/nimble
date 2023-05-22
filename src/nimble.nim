@@ -123,7 +123,7 @@ proc processFreeDependencies(pkgInfo: PackageInfo,
 
     if not found:
       display("Installing", $resolvedDep, priority = HighPriority)
-      let toInstall: seq[PkgTuple] = @[newPkgTuple(resolvedDep.name, resolvedDep.ver)]
+      let toInstall = @[newPkgTuple(resolvedDep.name, resolvedDep.ver)]
       let (packages, installedPkg) = install(toInstall, options,
         doPrompt = false, first = false, fromLockFile = false,
         preferredPackages = preferredPackages)

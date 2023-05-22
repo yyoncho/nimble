@@ -447,20 +447,24 @@ proc setRunOptions(result: var Options, key, val: string, isArg: bool) =
   else:
     result.action.runFlags.add(val)
 
+proc parsePackage(pkg: string): PkgTuple =
+  # Parse pkg@verRange
+  result = if '@' in pkg:
+    let
+      i = find(pkg, '@')
+      (pkgName, pkgVer) = (pkg[0 .. i-1], pkg[i+1 .. pkg.len-1])
+    if pkgVer.len == 0:
+      raise nimbleError("Version range expected after '@'.")
+    newPkgTuple(pkgName, pkgVer.parseVersionRange())
+  else:
+    newPkgTuple(pkg, VersionRange(kind: verAny), @[])
+
 proc parseArgument*(key: string, result: var Options) =
   case result.action.typ
   of actionNil:
     assert false
   of actionInstall, actionPath, actionDevelop, actionUninstall, actionUpgrade:
-    # Parse pkg@verRange
-    if '@' in key:
-      let i = find(key, '@')
-      let (pkgName, pkgVer) = (key[0 .. i-1], key[i+1 .. key.len-1])
-      if pkgVer.len == 0:
-        raise nimbleError("Version range expected after '@'.")
-      result.action.packages.add((pkgName, pkgVer.parseVersionRange(), @[]))
-    else:
-      result.action.packages.add((key, VersionRange(kind: verAny), @[]))
+    result.action.packages.add(parsePackage(key))
   of actionRefresh:
     result.action.optionalURL = key
   of actionSearch:
