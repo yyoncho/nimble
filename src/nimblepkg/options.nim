@@ -29,6 +29,7 @@ type
     showHelp*: bool
     lockFileName*: string
     useSystemNim*: bool
+    features*: seq[string]
     showVersion*: bool
     offline*: bool
     noColor*: bool
@@ -524,6 +525,7 @@ proc parseFlag*(flag, val: string, result: var Options, kind = cmdLongOption) =
   of "package", "p": result.package = val
   of "lockfile": result.lockFileName = val
   of "usesystemnim": result.useSystemNim = true
+  of "features": result.features = val.split(",")
   else: isGlobalFlag = false
 
   var wasFlagHandled = true

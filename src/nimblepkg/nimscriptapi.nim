@@ -247,3 +247,15 @@ proc getPaths*(): seq[string] =
 proc getPathsClause*(): string =
   ## Returns the paths to the dependencies as consumed by the nim compiler.
   return getPaths().mapIt("--path:" & it.quoteShell).join(" ")
+
+
+var
+  featureName* = ""
+
+template feature*(name, body: untyped) =
+  let old = featureName
+  featureName = name
+  try:
+    body
+  finally:
+    featureName = old

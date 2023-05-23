@@ -9,8 +9,9 @@ import testscommon
 from nimblepkg/common import cd
 
 suite "Features":
-  test "Install with feature flags":
+  # test "Install (no features enabled)":
+  #   cd "features/hello-features":
+  #     check execCmdEx(nimblePath & " -y install").exitCode == QuitSuccess
+  test "Install with features":
     cd "features/hello-features":
-      let (output, exitCode) = execCmdEx(nimblePath & " --features=demo-feature -y install")
-      echo ">>", output
-      check exitCode == QuitSuccess
+      check execCmdEx(nimblePath & " --features=demo-feature -y build").exitCode == QuitSuccess
