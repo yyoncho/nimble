@@ -68,7 +68,9 @@ type
   Action* = object
     case typ*: ActionType
     of actionNil, actionList, actionPublish, actionTasks, actionCheck,
-       actionLock, actionSetup, actionClean: nil
+       actionSetup, actionClean: nil
+    of actionLock:
+      lockNim*: bool
     of actionSync:
       listOnly*: bool
     of actionRefresh:
@@ -194,6 +196,7 @@ Commands:
                                   the name of an installed package.
                [--ini, --json]    Selects the output format (the default is --ini).
   lock                            Generates or updates a package lock file.
+               [--lockNim]        Lock nim
   upgrade      [pkgname, ...]     Upgrades a list of packages in the lock file.
   deps                            Outputs dependency tree
                [--format type]    Specify the output format. Json is the only supported
@@ -617,6 +620,11 @@ proc parseFlag*(flag, val: string, result: var Options, kind = cmdLongOption) =
     case f
     of "format":
       result.action.format = val
+    else:
+      wasFlagHandled = false
+  of actionLock:
+    if f == "locknim":
+      result.action.lockNim = true
     else:
       wasFlagHandled = false
   else:

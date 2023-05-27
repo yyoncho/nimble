@@ -101,6 +101,7 @@ proc processFreeDependencies(pkgInfo: PackageInfo,
   var reverseDependencies: seq[PackageBasicInfo] = @[]
 
   let includeNim =
+    (options.action.typ == actionLock and options.action.lockNim) or
     pkgInfo.lockedDeps.contains("compiler") or
     pkgInfo.getDevelopDependencies(options).contains("nim")
 
