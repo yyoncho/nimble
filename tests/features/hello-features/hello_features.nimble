@@ -11,5 +11,9 @@ bin           = @["demo"]
 
 requires "nim"
 
+# echo "demo-feature enabled"
+
 feature "demo-feature":
+  task checkEnabled, "":
+    echo "demo-feature enabled"
   requires "with" # feature specific

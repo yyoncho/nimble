@@ -14,4 +14,6 @@ suite "Features":
   #     check execCmdEx(nimblePath & " -y install").exitCode == QuitSuccess
   test "Install with features":
     cd "features/hello-features":
-      check execCmdEx(nimblePath & " --features=demo-feature -y build").exitCode == QuitSuccess
+      let (output, exitCode) = execCmdEx(nimblePath & " --features=demo-feature -y checkEnabled")
+      check exitCode == QuitSuccess
+      check output.contains("demo-feature enabled")
