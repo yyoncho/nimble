@@ -7,6 +7,7 @@ license       = "BSD"
 
 bin = @["nimble"]
 srcDir = "src"
+skipDirs = @["pkgutils"]
 installExt = @["nim"]
 
 # Dependencies
